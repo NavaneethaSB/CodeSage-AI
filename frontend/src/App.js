@@ -337,7 +337,7 @@ export default function App() {
 
         <AnimatePresence>
 
-          {updatedCode && (
+          {updatedCode?.trim() !== "" && (
 
             <motion.div
               initial={{ opacity: 0 }}
