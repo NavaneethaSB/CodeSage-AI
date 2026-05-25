@@ -218,6 +218,8 @@ VERY IMPORTANT RULES:
 4. Keep explanation concise
 5. Use bullet points only
 6. Do NOT use markdown code blocks
+7. Do NOT add language names like c, python, java before the code
+ 
 
 RETURN FORMAT EXACTLY:
 
