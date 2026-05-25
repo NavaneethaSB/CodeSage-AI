@@ -44,45 +44,51 @@ export default function App() {
 
   const callAPI = async (endpoint, body, setter, loader) => {
 
-    loader(true);
+  loader(true);
 
-    setExplanation("");
-    setUpdatedCode("");
-
-    try {
-
-  const res = await axios.post(
-    `https://codesage-ai-2inh.onrender.com/${endpoint}`,
-    body
-  );
-
-  console.log(res.data);
-
-  const explanationData = res.data.explanation || "";
-  const updatedCodeData = res.data.updatedCode || "";
-
-  // Force rerender to avoid stale state issue
+  // Clear previous output BEFORE request starts
 
   setExplanation("");
   setUpdatedCode("");
 
-  setTimeout(() => {
+  try {
 
-    setExplanation(explanationData);
-    setUpdatedCode(updatedCodeData);
+    const res = await axios.post(
+      `https://codesage-ai-2inh.onrender.com/${endpoint}`,
+      body
+    );
 
-  }, 50);
+    console.log(res.data);
 
-} catch (err) {
+    // Directly update fresh response
 
-  console.error(err);
+    setExplanation(res.data.explanation || "");
 
-  setExplanation("Backend Error.");
-  setUpdatedCode("");
+    if (
+      res.data.updatedCode &&
+      res.data.updatedCode.trim() !== ""
+    ) {
 
-}
-    loader(false);
-  };
+      setUpdatedCode(res.data.updatedCode);
+
+    } else {
+
+      setUpdatedCode("");
+
+    }
+
+  } catch (err) {
+
+    console.error(err);
+
+    setExplanation("Backend Error.");
+    setUpdatedCode("");
+
+  }
+
+  loader(false);
+
+};
 
   // ---------------- COPY ----------------
 
