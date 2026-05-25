@@ -4,10 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-const Spinner = () => (
-  <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-);
-
 export default function App() {
 
   const [code, setCode] = useState("");
@@ -232,25 +228,28 @@ export default function App() {
   components={{
 
     h1: ({ node, ...props }) => (
-      <h1
-        className="text-3xl font-bold text-white mt-8 mb-5 border-b border-slate-700 pb-3"
-        {...props}
-      />
-    ),
+  <h1
+    className="text-3xl font-bold text-white mt-8 mb-5 border-b border-slate-700 pb-3"
+  >
+    {props.children}
+  </h1>
+),
 
-    h2: ({ node, ...props }) => (
-      <h2
-        className="text-2xl font-semibold text-blue-300 mt-7 mb-4"
-        {...props}
-      />
-    ),
+h2: ({ node, ...props }) => (
+  <h2
+    className="text-2xl font-semibold text-blue-300 mt-7 mb-4"
+  >
+    {props.children}
+  </h2>
+),
 
-    h3: ({ node, ...props }) => (
-      <h3
-        className="text-xl font-semibold text-purple-300 mt-6 mb-3"
-        {...props}
-      />
-    ),
+h3: ({ node, ...props }) => (
+  <h3
+    className="text-xl font-semibold text-purple-300 mt-6 mb-3"
+  >
+    {props.children}
+  </h3>
+),
 
     p: ({ node, ...props }) => (
       <p
