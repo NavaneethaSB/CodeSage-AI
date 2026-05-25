@@ -55,10 +55,10 @@ export default function App() {
 
     try {
 
-      const res = await axios.post(
-        `http://localhost:8000/${endpoint}`,
-        body
-      );
+  const res = await axios.post(
+    `https://codesage-ai-2inh.onrender.com/${endpoint}`,
+    body
+  );
 
       setExplanation(res.data.explanation || "");
       setUpdatedCode(res.data.updatedCode || "");
