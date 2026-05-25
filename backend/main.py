@@ -79,6 +79,14 @@ def call_groq_response(prompt):
 
             updated_code = updated_code.strip()
 
+            # Remove accidental language labels
+
+            for lang in ["c", "cpp", "python", "java", "javascript"]:
+
+                if updated_code.lower().startswith(lang + "\n"):
+
+                    updated_code = updated_code[len(lang):].strip()
+
         else:
 
             explanation = text
