@@ -310,29 +310,36 @@ h3: ({ node, ...props }) => (
 
     code({ inline, className, children, ...props }) {
 
-      if (inline) {
+  const match = /language-(\w+)/.exec(className || "");
 
-        return (
-          <code
-            className="bg-slate-700 text-green-300 px-2 py-1 rounded text-sm"
-            {...props}
-          >
-            {children}
-          </code>
-        );
-      }
+  let cleanCode = String(children);
 
-      return (
-        <pre className="bg-[#0f172a] border border-slate-700 rounded-xl p-5 overflow-x-auto whitespace-pre-wrap break-words my-6">
-          <code
-            className="text-green-400 text-sm leading-7"
-            {...props}
-          >
-            {children}
-          </code>
-        </pre>
-      );
-    },
+  // Remove accidental language labels like "c", "python", etc.
+  cleanCode = cleanCode.replace(/^(c|cpp|python|java|javascript)\n/i, "");
+
+  if (inline) {
+
+    return (
+      <code
+        className="bg-slate-700 text-green-300 px-2 py-1 rounded text-sm"
+        {...props}
+      >
+        {children}
+      </code>
+    );
+  }
+
+  return (
+    <pre className="bg-[#0f172a] border border-slate-700 rounded-xl p-5 overflow-x-auto whitespace-pre-wrap break-words my-6">
+      <code
+        className="text-green-400 text-sm leading-7"
+        {...props}
+      >
+        {cleanCode}
+      </code>
+    </pre>
+  );
+},
 
     blockquote: ({ node, ...props }) => (
       <blockquote
