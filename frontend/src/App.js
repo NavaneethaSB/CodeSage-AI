@@ -56,15 +56,31 @@ export default function App() {
     body
   );
 
-      setExplanation(res.data.explanation || "");
-      setUpdatedCode(res.data.updatedCode || "");
+  console.log(res.data);
 
-    } catch (err) {
+  const explanationData = res.data.explanation || "";
+  const updatedCodeData = res.data.updatedCode || "";
 
-      setter("Backend Error.");
+  // Force rerender to avoid stale state issue
 
-    }
+  setExplanation("");
+  setUpdatedCode("");
 
+  setTimeout(() => {
+
+    setExplanation(explanationData);
+    setUpdatedCode(updatedCodeData);
+
+  }, 50);
+
+} catch (err) {
+
+  console.error(err);
+
+  setExplanation("Backend Error.");
+  setUpdatedCode("");
+
+}
     loader(false);
   };
 
