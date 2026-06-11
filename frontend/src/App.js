@@ -81,7 +81,7 @@ export default function App() {
 
     console.error(err);
 
-    setExplanation("Backend Error.");
+    setExplanation("Backend Error! Sorry for the inconvenience. Please try again later!");
     setUpdatedCode("");
 
   }
