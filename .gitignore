@@ -1,3 +1,16 @@
+# Environment files
+backend/.env
+.env
+
+# Node
+frontend/node_modules/
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+env/
+
 # dependencies
 /node_modules
 /.pnp
@@ -12,7 +25,7 @@
 
 # python
 venv
-__pycache__
+__pycache__/
 venv/
 *.pycgit status
 

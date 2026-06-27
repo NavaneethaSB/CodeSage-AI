@@ -43,7 +43,7 @@ def call_groq_response(prompt):
     try:
 
         completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="gpt-oss-20b",
 
             messages=[
                 {
