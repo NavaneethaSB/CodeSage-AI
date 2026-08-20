@@ -166,7 +166,7 @@ Code:
 
         # Groq API Call
         completion = client.chat.completions.create(
-            model="gpt-oss-20b",
+            model="openai/gpt-oss-20b",
 
             messages=[
                 {
