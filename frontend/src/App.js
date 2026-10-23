@@ -310,7 +310,7 @@ h3: ({ node, ...props }) => (
 
     code({ inline, className, children, ...props }) {
 
-  const match = /language-(\w+)/.exec(className || "");
+  // const match = /language-(\w+)/.exec(className || "");
 
   let cleanCode = String(children);
 
