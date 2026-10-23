@@ -1,47 +1,7 @@
-# Environment files
-backend/.env
 .env
-
-# Node
-frontend/node_modules/
-node_modules/
-
-# Python
+.env.*
+!.env.example
 __pycache__/
-*.pyc
-env/
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# production
-/build
-/dist
-
-# python
-venv
-__pycache__/
+*.py[cod]
+.venv/
 venv/
-*.pycgit status
-
-# environment variables
-backend/.env
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# misc
-.DS_Store
-
-# logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
