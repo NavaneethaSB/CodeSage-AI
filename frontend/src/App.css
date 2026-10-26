@@ -17,3 +17,20 @@
 @media(max-width:800px) { .action-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.workspace { padding:0 20px 25px; }.intro { padding-top:48px; } }
 @media(max-width:520px) { .workspace { padding:0 14px 20px; }.topbar { height:64px; }.topbar-right { font-size:10px; }.brand-name { font-size:15px; }.intro { padding:42px 0 27px; }.intro h1 { letter-spacing:-1.6px; }.intro p { font-size:13px; }.editor-topline { padding:0 12px; }.editor-body { min-height:200px; }.line-gutter { width:36px;padding-right:10px; }.editor-body textarea { font-size:12px; }.editor-footer { align-items:flex-start; flex-direction:column; gap:5px; padding:10px 12px; }.action-grid { grid-template-columns:1fr; gap:7px; }.action-button { min-height:61px; }.convert-group { min-height:61px; }.convert-group .action-button { height:100%; }.select-wrap { right:9px; }.select-wrap select { max-width:120px; }.result-header { padding:15px; }.markdown-content { padding:13px 15px 22px;font-size:12px; }.updated-code { margin:14px; }.footer { padding-top:22px; } }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto !important;animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important; } }
+
+.editor-tools { display:flex; align-items:center; gap:8px; }
+.sample-select select { max-width:130px; appearance:none; padding:6px 9px; border:1px solid #30372c; border-radius:5px; color:#bdc6b3; background:#171b15; font-size:10px; cursor:pointer; }
+.editor-body textarea { min-height:280px; line-height:1.75; tab-size:2; white-space:pre; overflow:auto; }
+.editor-body textarea::placeholder { white-space:pre-wrap; }
+.action-button:focus-visible,.copy-button:focus-visible,.sample-select select:focus-visible,.select-wrap select:focus-visible { outline:2px solid #c4e885; outline-offset:3px; }
+.result-actions { display:flex; align-items:center; justify-content:flex-end; gap:7px; flex-wrap:wrap; }
+.inline-copy { margin-left:auto; padding:3px 7px; border:1px solid #33392f; border-radius:4px; color:#aeb99f; background:#161a14; font:10px 'DM Sans',sans-serif; cursor:pointer; }
+.inline-copy:hover { color:#d7e8be; border-color:#596849; }
+.result-code code { display:block; min-width:max-content; }
+@media(max-width:520px) {
+  .editor-tools { gap:5px; }
+  .sample-select select { max-width:92px; padding:5px 6px; font-size:9px; }
+  .editor-body textarea { min-height:240px; }
+  .result-header { align-items:flex-start; gap:12px; flex-wrap:wrap; }
+  .result-actions { width:100%; justify-content:flex-start; }
+}

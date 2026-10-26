@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 export default function App() {
   const [code, setCode] = useState("");
@@ -10,6 +12,10 @@ export default function App() {
   const [updatedCode, setUpdatedCode] = useState("");
   const [targetLang, setTargetLang] = useState("");
   const [detectedLang, setDetectedLang] = useState("");
+  const [sample, setSample] = useState("");
+  const [previousCode, setPreviousCode] = useState(null);
+  const [requestError, setRequestError] = useState(false);
+  const editorRef = useRef(null);
   const [loadingExplain, setLoadingExplain] = useState(false);
   const [loadingFix, setLoadingFix] = useState(false);
   const [loadingOptimize, setLoadingOptimize] = useState(false);
@@ -32,24 +38,94 @@ export default function App() {
   }, [code]);
 
   const callAPI = async (endpoint, body, setter, loader) => {
+    if (!code.trim()) {
+      setRequestError(true);
+      setExplanation("Add some code to the editor before choosing an action.");
+      setUpdatedCode("");
+      return;
+    }
+    if (endpoint === "convert-code" && !targetLang) {
+      setRequestError(true);
+      setExplanation("Choose a target language before converting your code.");
+      setUpdatedCode("");
+      return;
+    }
     loader(true);
+    setRequestError(false);
+    setPreviousCode(null);
     setExplanation("");
     setUpdatedCode("");
     try {
       const res = await axios.post(`https://codesage-ai-2inh.onrender.com/${endpoint}`, body);
-      console.log(res.data);
-      setExplanation(res.data.explanation || "");
-      if (res.data.updatedCode && res.data.updatedCode.trim() !== "") setUpdatedCode(res.data.updatedCode);
-      else setUpdatedCode("");
+      const result = res.data || {};
+      setExplanation(typeof result.explanation === "string" ? result.explanation : "The service returned an empty or unreadable response.");
+      setUpdatedCode(typeof result.updatedCode === "string" ? result.updatedCode.trim() : "");
     } catch (err) {
-      console.error(err);
-      setExplanation("Backend Error! Sorry for the inconvenience. Please try again later!");
+      setRequestError(true);
+      const detail = err.response?.data?.detail;
+      setExplanation(detail ? `Request failed: ${detail}` : err.response ? `Request failed (${err.response.status}). Please try again.` : "Could not reach CodeSage AI. Check your connection and try again.");
       setUpdatedCode("");
     }
     loader(false);
   };
 
-  const copyCode = () => navigator.clipboard.writeText(updatedCode);
+  const copyCode = async () => {
+    try { await navigator.clipboard.writeText(updatedCode); setCopyStatus("Copied"); setTimeout(() => setCopyStatus("Copy code"), 1800); }
+    catch { setCopyStatus("Copy unavailable"); setTimeout(() => setCopyStatus("Copy code"), 1800); }
+  };
+  const [copyStatus, setCopyStatus] = useState("Copy code");
+  const downloadCode = () => {
+    const extension = ({ Python: "py", JavaScript: "js", Java: "java", "C++": "cpp", C: "c" })[targetLang || detectedLang] || "txt";
+    const url = URL.createObjectURL(new Blob([updatedCode], { type: "text/plain" }));
+    const link = document.createElement("a"); link.href = url; link.download = `codesage-result.${extension}`; link.click(); URL.revokeObjectURL(url);
+  };
+  const useUpdatedCode = () => { setPreviousCode(code); setCode(updatedCode); editorRef.current?.focus(); };
+  const restoreCode = () => { if (previousCode !== null) { setCode(previousCode); setPreviousCode(null); editorRef.current?.focus(); } };
+  const insertSample = (value) => { setSample(value); if (value) { setCode(value); setPreviousCode(null); editorRef.current?.focus(); } };
+  const handleEditorKeyDown = (event) => {
+    const editor = event.currentTarget;
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const value = code;
+    if (event.key === "Tab") {
+      event.preventDefault();
+      const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+      if (start !== end) {
+        const blockStart = lineStart;
+        const blockEnd = value.indexOf("\n", end) === -1 ? value.length : value.indexOf("\n", end);
+        const block = value.slice(blockStart, blockEnd);
+        const lines = block.split("\n");
+        const next = lines.map((line) => event.shiftKey ? line.replace(/^( {1,2}|\t)/, "") : `  ${line}`).join("\n");
+        setCode(value.slice(0, blockStart) + next + value.slice(blockEnd));
+        requestAnimationFrame(() => editor.setSelectionRange(blockStart, blockStart + next.length));
+      } else if (event.shiftKey) {
+        const line = value.slice(lineStart, start);
+        const removed = line.match(/^( {1,2}|\t)/)?.[0] || "";
+        if (removed) { setCode(value.slice(0, lineStart) + value.slice(lineStart + removed.length)); requestAnimationFrame(() => editor.setSelectionRange(start - removed.length, start - removed.length)); }
+      } else {
+        setCode(value.slice(0, start) + "  " + value.slice(end));
+        requestAnimationFrame(() => editor.setSelectionRange(start + 2, start + 2));
+      }
+      return;
+    }
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+    const currentLine = value.slice(lineStart, start);
+    const indent = currentLine.match(/^\s*/)?.[0] || "";
+    const trimmed = currentLine.trimEnd();
+    const pythonBlock = /:\s*(#.*)?$/.test(trimmed) && /^(async\s+)?(if|elif|else|for|while|def|class|try|except|finally|with|match|case)\b/.test(trimmed);
+    const opensBlock = /[({[]\s*$/.test(trimmed);
+    const closingNext = /^\s*[)}\]]/.test(value.slice(end));
+    let nextIndent = indent;
+    if (/^\s*(elif|else|except|finally|case)\b/.test(currentLine) && indent.length >= 2) nextIndent = indent.slice(0, -2);
+    if (pythonBlock || opensBlock) nextIndent += "  ";
+    if (closingNext && !opensBlock && indent.length >= 2) nextIndent = indent.slice(0, -2);
+    const insertion = closingNext && opensBlock ? `\n${indent}  \n${indent}` : `\n${nextIndent}`;
+    setCode(value.slice(0, start) + insertion + value.slice(end));
+    const cursor = start + (closingNext && opensBlock ? indent.length + 3 : insertion.length);
+    requestAnimationFrame(() => editor.setSelectionRange(cursor, cursor));
+  };
   const allLanguages = ["Python", "JavaScript", "Java", "C++", "C"];
   const availableLanguages = allLanguages.filter((lang) => lang !== detectedLang);
 
@@ -73,13 +149,13 @@ export default function App() {
         <section className="editor-card" aria-label="Code workspace">
           <div className="editor-topline">
             <div className="editor-label"><span className="window-dots"><i/><i/><i/></span><span>CODE EDITOR</span></div>
-            <div className="language-badge"><span className="language-icon">⌘</span>{detectedLang || "Language"}<span className={`detect-dot ${detectedLang ? "detected" : ""}`}/></div>
+            <div className="editor-tools"><label className="sample-select"><span className="sr-only">Insert sample code</span><select value={sample} onChange={(event) => insertSample(event.target.value)}><option value="">Samples…</option><option value={'def greet(name):\n    if not name:\n        return "Hello, world!"\n    return f"Hello, {name}!"\n\nprint(greet("Ada"))'}>Python greeting</option><option value={'function findEven(numbers) {\n  return numbers.filter((number) => number % 2 === 0);\n}\n\nconsole.log(findEven([1, 2, 3, 4]));'}>JavaScript filter</option></select></label><div className="language-badge"><span className="language-icon">⌘</span>{detectedLang || "Auto detect"}<span className={`detect-dot ${detectedLang ? "detected" : ""}`}/></div></div>
           </div>
           <div className="editor-body">
             <div className="line-gutter" aria-hidden="true">{Array.from({ length: Math.max(8, code.split("\n").length) }, (_, i) => <span key={i}>{i + 1}</span>)}</div>
-            <textarea aria-label="Code editor" value={code} onChange={(e) => setCode(e.target.value)} placeholder={'// Paste your code here\n// CodeSage will help you make sense of it.'} spellCheck="false" autoCapitalize="off" autoComplete="off" />
+            <textarea ref={editorRef} aria-label="Code editor" value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={handleEditorKeyDown} placeholder={'Paste or write code here…\n\nTip: press Tab to indent and Enter to continue a block.'} spellCheck="false" autoCapitalize="off" autoComplete="off" />
           </div>
-          <div className="editor-footer"><span>{code.length ? `${code.split("\n").length} lines · ${code.length} characters` : "Your code stays yours. Paste it here to get started."}</span><span className="editor-hint">{detectedLang ? `${detectedLang} detected` : "Supports Python, JavaScript, Java, C++ & C"}</span></div>
+          <div className="editor-footer"><span>{code.length ? `${code.split("\n").length} lines · ${code.length} characters` : "Your code stays yours. Paste it here to get started."}</span><span className="editor-hint">{detectedLang ? `${detectedLang} detected · Ctrl/⌘+Z to undo` : "Auto detects Python, JavaScript, Java, C++ & C · Tab / Shift+Tab to indent"}</span></div>
         </section>
 
         <section className="actions" aria-label="Code actions">
@@ -105,8 +181,8 @@ export default function App() {
         {!explanation && !updatedCode && !isAnyLoading && <div className="welcome-note"><span className="welcome-star">✳</span><span><strong>Ready when you are</strong><small>Add code above and choose an action to see your results here.</small></span></div>}
 
         <AnimatePresence>
-          {explanation && <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={`result-card ${explanation.startsWith("Backend Error!") ? "error-result" : ""}`} aria-live="polite">
-            <div className="result-header"><div className="result-title"><span className="result-symbol">✳</span><div><span className="result-kicker">CODESAGE ANALYSIS</span><h2>{explanation.startsWith("Backend Error!") ? "Something went wrong" : "Your results"}</h2></div></div><span className="result-ready"><span/> {explanation.startsWith("Backend Error!") ? "Connection issue" : "Complete"}</span></div>
+          {explanation && <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={`result-card ${requestError ? "error-result" : ""}`} aria-live="polite">
+            <div className="result-header"><div className="result-title"><span className="result-symbol">✳</span><div><span className="result-kicker">CODESAGE ANALYSIS</span><h2>{requestError ? "A little more needed" : "Your results"}</h2></div></div><span className="result-ready"><span/> {requestError ? "Check your request" : "Complete"}</span></div>
             <div className="markdown-content"><ReactMarkdown remarkPlugins={[remarkGfm]} components={{
               h1: ({ children, ...props }) => <h1 {...props}>{children}</h1>, h2: ({ children, ...props }) => <h2 {...props}>{children}</h2>, h3: ({ children, ...props }) => <h3 {...props}>{children}</h3>,
               p: ({ ...props }) => <p {...props}/>, ul: ({ ...props }) => <ul {...props}/>, ol: ({ ...props }) => <ol {...props}/>, li: ({ ...props }) => <li {...props}/>,
@@ -114,13 +190,14 @@ export default function App() {
               code({ inline, className, children, ...props }) {
                 let cleanCode = String(children).replace(/^(c|cpp|python|java|javascript)\n/i, "");
                 if (inline) return <code className="inline-code" {...props}>{children}</code>;
-                return <pre className="result-code"><div className="code-caption"><span className="window-dots"><i/><i/><i/></span><span>{className?.replace("language-", "") || "CODE"}</span></div><code className={className} {...props}>{cleanCode}</code></pre>;
+                const language = className?.replace("language-", "") || "text";
+                return <div className="result-code"><div className="code-caption"><span className="window-dots"><i/><i/><i/></span><span>{language}</span><button type="button" onClick={() => navigator.clipboard?.writeText(cleanCode)} className="inline-copy">Copy</button></div><SyntaxHighlighter language={language} style={vscDarkPlus} customStyle={{ margin: 0, padding: "15px", background: "#0b0e0b", fontSize: "12px", lineHeight: 1.75 }}>{cleanCode.replace(/\n$/, "")}</SyntaxHighlighter></div>;
               }
             }}>{explanation}</ReactMarkdown></div>
           </motion.section>}
           {updatedCode?.trim() !== "" && <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="result-card updated-card">
-            <div className="result-header"><div className="result-title"><span className="result-symbol code-symbol">⌘</span><div><span className="result-kicker">READY TO USE</span><h2>Updated code</h2></div></div><button onClick={copyCode} className="copy-button"><span>▢</span> Copy code</button></div>
-            <pre className="result-code updated-code"><div className="code-caption"><span className="window-dots"><i/><i/><i/></span><span>{targetLang || detectedLang || "CODE"}</span></div><code>{updatedCode}</code></pre>
+            <div className="result-header"><div className="result-title"><span className="result-symbol code-symbol">⌘</span><div><span className="result-kicker">{targetLang ? `${detectedLang || "Source"} → ${targetLang}` : "READY TO USE"}</span><h2>{targetLang ? "Converted code" : "Updated code"}</h2></div></div><div className="result-actions"><button onClick={copyCode} className="copy-button"><span>▢</span> {copyStatus}</button><button onClick={downloadCode} className="copy-button">Download</button>{requestError === false && <button onClick={useUpdatedCode} className="copy-button">Use in editor</button>}{previousCode !== null && <button onClick={restoreCode} className="copy-button">Undo change</button>}</div></div>
+            <div className="result-code updated-code"><div className="code-caption"><span className="window-dots"><i/><i/><i/></span><span>{targetLang || detectedLang || "CODE"}</span></div><SyntaxHighlighter language={({ Python: "python", JavaScript: "javascript", Java: "java", "C++": "cpp", C: "c" })[targetLang || detectedLang] || "text"} style={vscDarkPlus} customStyle={{ margin: 0, padding: "15px", background: "#0b0e0b", fontSize: "12px", lineHeight: 1.75 }}>{updatedCode.replace(/\n$/, "")}</SyntaxHighlighter></div>
           </motion.section>}
         </AnimatePresence>
         <footer className="footer"><span>CodeSage AI</span><span>Thoughtful tools for better code.</span></footer>
