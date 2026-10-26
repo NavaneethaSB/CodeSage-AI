@@ -1,7 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #0f172a;
-}
+:root { color-scheme: dark; font-family: 'DM Sans', sans-serif; background: #0b0d10; color: #e8e9e7; font-synthesis: none; text-rendering: optimizeLegibility; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: #0b0d10; }
+button, textarea, select { font: inherit; }
+button:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #c4e885; outline-offset: 3px; }
+::selection { background: #c4e885; color: #11150d; }
